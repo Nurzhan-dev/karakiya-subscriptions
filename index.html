@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Система Учета Подписки (с Категориями)</title>
+    <title>Система Учета Подписки</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -42,8 +42,13 @@
         // =========================================================================
         // --- 1. SUPABASE (замени ключи на свои) ---
         // =========================================================================
-        const SUPABASE_URL = "https://cyrqmfaxouhkajpgdyzz.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5cnFtZmF4b3Vva29qcGdkeXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2Nzc5NjAsImV4cCI6MjA4MDI1Mzk2MH0.aF9UT5Usok9q6J8QUeRaVcFABYXJ4KAD4b4ATZ19A-Q";
+        
+        import { createClient } from '@supabase/supabase-js'
+
+        const supabaseUrl = 'https://cyrqmfaxouhkojpgdyzz.supabase.co'
+        const supabaseKey = process.env.SUPABASE_KEY
+        const supabase = createClient(supabaseUrl, supabaseKey)
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5cnFtZmF4b3Voa29qcGdkeXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2Nzc5NjAsImV4cCI6MjA4MDI1Mzk2MH0.aF9UT5Usok9q6J8QUeRaVcFABYXJ4KAD4b4ATZ19A-Q";
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const TABLE_NAME = 'subscriptions';
 
@@ -536,4 +541,5 @@
     </script>
 </body>
 </html>
+
 
