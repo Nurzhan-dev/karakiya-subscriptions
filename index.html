@@ -43,15 +43,21 @@
         // --- 1. SUPABASE (замени ключи на свои) ---
         // =========================================================================
         
-        import { createClient } from '@supabase/supabase-js'
-
-        const supabaseUrl = 'https://cyrqmfaxouhkojpgdyzz.supabase.co'
-        const supabaseKey = process.env.SUPABASE_KEY
-        const supabase = createClient(supabaseUrl, supabaseKey)
+        const SUPABASE_URL = "https://cyrqmfaxouhkojpgdyzz.supabase.co";
+        // Используем JWT anon key (длинный), который вы прислали в логе ошибки, так как он нужен для JS клиента
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5cnFtZmF4b3Voa29qcGdkeXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2Nzc5NjAsImV4cCI6MjA4MDI1Mzk2MH0.aF9UT5Usok9q6J8QUeRaVcFABYXJ4KAD4b4ATZ19A-Q";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const TABLE_NAME = 'subscriptions';
 
+        // Инициализация (только один раз)
+        let supabase = null;
+        try {
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } else {
+                console.error("Библиотека Supabase не загружена. Проверьте подключение к интернету.");
+            }
+        } catch (e) {
+            console.error("Ошибка инициализации Supabase:", e);
+        }
         // =========================================================================
         // --- 2. ТИПЫ ПОДПИСКИ (исправлено) ---
         // =========================================================================
@@ -541,5 +547,6 @@
     </script>
 </body>
 </html>
+
 
 
