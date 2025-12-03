@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система Учета Подписки</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Подключение Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* Стили для печати */
         @media print {
             @page { margin: 0.5cm; size: A4; }
-            body { margin: 0; padding: 0; background: white; print-color-adjust: exact;
-                   -webkit-print-color-adjust: exact; font-family: "Times New Roman", Times, serif; }
+            body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; font-family: "Times New Roman", Times, serif; }
             .no-print { display: none !important; }
             .print-only { display: block !important; width: 100%; }
             .page-break { page-break-after: always; }
@@ -33,6 +34,7 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
+    
     <div id="root" class="h-full flex flex-col"></div>
 
     <script type="text/babel">
@@ -40,40 +42,30 @@
         const { createRoot } = ReactDOM;
 
         // =========================================================================
-        // --- 1. SUPABASE (замени ключи на свои) ---
+        // --- 1. НАСТРОЙКИ SUPABASE ---
+        // =========================================================================
+        const SUPABASE_URL = "https://cyrqmfaxouhkojpgdyzz.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5cnFtZmF4b3Voa29qcGdkeXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2Nzc5NjAsImV4cCI6MjA4MDI1Mzk2MH0.aF9UT5Usok9q6J8QUeRaVcFABYXJ4KAD4b4ATZ19A-Q";
+        const TABLE_NAME = 'subscriptions'; 
+        
+        // Переменная для клиента Supabase. Инициализируется в App.
+        let supabaseClient = null;
         // =========================================================================
         
-        const SUPABASE_URL = "https://cyrqmfaxouhkojpgdyzz.supabase.co";
-        // Используем JWT anon key (длинный), который вы прислали в логе ошибки, так как он нужен для JS клиента
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5cnFtZmF4b3Voa29qcGdkeXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2Nzc5NjAsImV4cCI6MjA4MDI1Mzk2MH0.aF9UT5Usok9q6J8QUeRaVcFABYXJ4KAD4b4ATZ19A-Q";
-
-        // Инициализация (только один раз)
-        let supabase = null;
-        try {
-            if (window.supabase) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            } else {
-                console.error("Библиотека Supabase не загружена. Проверьте подключение к интернету.");
-            }
-        } catch (e) {
-            console.error("Ошибка инициализации Supabase:", e);
-        }
-        // =========================================================================
-        // --- 2. ТИПЫ ПОДПИСКИ (исправлено) ---
-        // =========================================================================
+        // --- 2. ТИПЫ ПОДПИСКИ ---
         const SUB_TYPES = {
-            EDITORIAL: { id: 'editorial', label: 'Редакция', defaultAmount: 5520, color: 'gold' },
-            KAZPOST: { id: 'kazpost', label: 'KazPost', defaultAmount: 7689.84, color: 'blue' }
+            EDITORIAL: { id: 'editorial', label: 'Редакция', defaultAmount: 3000, color: 'green' },
+            KAZPOST: { id: 'kazpost', label: 'KazPost', defaultAmount: 6500, color: 'red' }
         };
-        const DEFAULT_TYPE = SUB_TYPES.EDITORIAL;
-        const getDefaultType = () => DEFAULT_TYPE;
+        // Устанавливаем Редакция как тип по умолчанию
+        const getDefaultType = () => SUB_TYPES.EDITORIAL; 
+        
         const getTypeById = (id) => {
-            if (!id) return getDefaultType();
             const found = Object.values(SUB_TYPES).find(t => t.id === id);
             return found || getDefaultType();
         };
 
-        // --- иконки (как в оригинале) ---
+        // --- ИКОНКИ (оставлены без изменений) ---
         const IconSearch = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
         const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
         const IconPrinter = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>;
@@ -84,8 +76,10 @@
         const IconScissors = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 rotate-90 transform"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>;
         const IconLoading = () => <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
         const IconImport = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+        const IconAlert = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>;
 
-        // --- Компактная квитанция ---
+        // --- КОМПОНЕНТЫ (обновлен getDefaultType) ---
+        
         const CompactReceipt = ({ subscriber }) => {
             const today = new Date().toLocaleDateString('ru-RU');
             const subType = getTypeById(subscriber.type);
@@ -109,7 +103,7 @@
                         </div>
                         <div className="row-gap flex items-baseline">
                             <span className="whitespace-nowrap mr-2">Аудандық қоғамдық-саяси газетіне</span>
-                            <span className="receipt-line flex-grow text-[12pt] text-center">{subscriber.period}</span>
+                            <span className="receipt-line flex-grow text-center text-[12pt]">{subscriber.period}</span>
                             <span className="whitespace-nowrap ml-1">мерзімге жазылды.</span>
                         </div>
                         <div className="row-gap flex items-baseline">
@@ -127,7 +121,7 @@
                             <div className="text-[10pt] font-bold">Кассирдің қолы</div>
                         </div>
                         <div className="text-center w-1/6">
-                            <div className="font-bold text-[12pt] border-2 border-black rounded-full w-10 h-10 flex items-center justify-center mx-auto opacity-30 rotate-12"></div>
+                            <div className="font-bold text-[12pt] border-2 border-black rounded-full w-10 h-10 flex items-center justify-center mx-auto opacity-30 rotate-12">М.О.</div>
                         </div>
                     </div>
                     <div className="absolute bottom-[-10px] left-0 text-xs text-gray-400 flex items-center gap-1 no-print"><IconScissors /> <span className="text-[10px]">қию сызығы</span></div>
@@ -135,7 +129,6 @@
             );
         };
 
-        // --- Генератор страниц для печати ---
         const ReceiptTemplate = ({ data }) => {
             if (!data || !data.subscribers || data.subscribers.length === 0) return null;
             const chunkSize = 5;
@@ -155,29 +148,32 @@
             );
         };
 
-        // --- Модалка импорта текста ---
         const ImportModal = ({ isOpen, onClose, onImport }) => {
             const [text, setText] = useState('');
             const [defaultOrg, setDefaultOrg] = useState('');
             const [defaultPeriod, setDefaultPeriod] = useState('Қаңтар 2026 – Желтоқсан 2026');
-            const [selectedType, setSelectedType] = useState(getDefaultType().id);
+            // Устанавливаем Редакция по умолчанию
+            const [selectedType, setSelectedType] = useState(SUB_TYPES.EDITORIAL.id); 
 
             if (!isOpen) return null;
 
             const subType = getTypeById(selectedType);
             const defaultAmount = subType.defaultAmount;
-
-            const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+            
+            // Получаем список линий (ФИО) здесь, чтобы использовать в рендере и логике
+            const lines = text.split('\n').filter(line => line.trim() !== '');
 
             const handleImport = () => {
-                if (lines.length === 0) { alert("Вставьте список ФИО (по одному в строке)"); return; }
+                if (lines.length === 0) { console.warn("Вставьте текст!"); return; }
+                
                 const newSubs = lines.map(line => ({
-                    name: line,
+                    name: line.trim(),
                     org: defaultOrg,
                     period: defaultPeriod,
-                    amount: Number(defaultAmount),
+                    amount: defaultAmount,
                     type: selectedType
                 }));
+
                 onImport(newSubs);
                 onClose();
                 setText('');
@@ -187,50 +183,40 @@
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
                     <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl p-6">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><IconImport /> Импорт из текста (Списки)</h2>
-                            <button onClick={onClose}><IconX /></button>
+                            <h2 className="text-xl font-bold flex items-center gap-2"><IconImport /> Импорт из текста</h2>
+                            <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><IconX /></button>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">Скопируйте список ФИО (каждое с новой строки):</p>
-                        <textarea 
-                            className="w-full h-40 border rounded p-2 text-sm mb-4" 
-                            placeholder="Иванов И.И.&#10;Петров П.П.&#10;Сидоров С.С."
-                            value={text}
-                            onChange={e => setText(e.target.value)}
-                        ></textarea>
+                        <p className="text-sm text-gray-600 mb-2">Скопируйте список ФИО из источника:</p>
+                        <textarea className="w-full h-40 border rounded p-2 text-sm mb-4 focus:ring-blue-500 focus:border-blue-500" placeholder="Иванов И.И.&#10;Петров П.П." value={text} onChange={e => setText(e.target.value)}></textarea>
                         
                         <div className="bg-green-50 p-3 rounded text-sm space-y-2 mb-4">
-                            <p className="font-semibold text-green-800">Общие параметры для импортируемых</p>
+                            <p className="font-semibold text-green-800">Настройки импорта:</p>
                             <div>
                                 <label className="block text-xs text-gray-500">Тип подписки</label>
-                                <select 
-                                    className="w-full border rounded p-1" 
-                                    value={selectedType} 
-                                    onChange={e => setSelectedType(e.target.value)}
-                                >
-                                    {Object.values(SUB_TYPES).map(t => (
-                                        <option key={t.id} value={t.id}>{t.label}</option>
-                                    ))}
+                                <select className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={selectedType} onChange={e => setSelectedType(e.target.value)}>
+                                    {Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs text-gray-500">Сумма (₸) (Автоматически по типу)</label>
-                                <input type="number" className="w-full border rounded p-1 bg-gray-100 font-bold" value={defaultAmount} readOnly />
+                                <label className="block text-xs text-gray-500">Сумма (₸)</label>
+                                <input type="number" className="w-full border rounded p-2 bg-gray-100 font-bold" value={defaultAmount} readOnly />
                             </div>
-                            <div><label className="block text-xs text-gray-500">Организация</label><input className="w-full border rounded p-1" value={defaultOrg} onChange={e => setDefaultOrg(e.target.value)} /></div>
-                            <div><label className="block text-xs text-gray-500">Период</label><input className="w-full border rounded p-1" value={defaultPeriod} onChange={e => setDefaultPeriod(e.target.value)} /></div>
+                            <div><label className="block text-xs text-gray-500">Организация</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultOrg} onChange={e => setDefaultOrg(e.target.value)} /></div>
+                            <div><label className="block text-xs text-gray-500">Период</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultPeriod} onChange={e => setDefaultPeriod(e.target.value)} /></div>
                         </div>
 
                         <div className="flex justify-end gap-2">
-                            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 border rounded hover:bg-gray-100">Отмена</button>
-                            <button type="button" onClick={handleImport} className="px-4 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700">Импортировать {lines.length > 0 && `(${lines.length} чел.)`}</button>
+                            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-100">Отмена</button>
+                            <button type="button" onClick={handleImport} className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 flex items-center gap-1" disabled={lines.length === 0}>
+                                {lines.length > 0 ? `Импортировать (${lines.length})` : 'Вставьте список'}
+                            </button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // --- Модалка редактирования / создания ---
-        const ModalForm = ({ isOpen, onClose, onSave, nextId, initialData, isLoading }) => {
+        const ModalForm = ({ isOpen, onClose, onSave, nextId, initialData }) => {
             const getDefaultSub = useCallback(() => {
                 const defaults = JSON.parse(localStorage.getItem('LAST_SUB_DEFAULTS') || JSON.stringify({ period: 'Қаңтар 2026 – Желтоқсан 2026', type: getDefaultType().id }));
                 const defaultType = getTypeById(defaults.type);
@@ -243,7 +229,7 @@
             useEffect(() => {
                 if (isOpen) {
                     if (initialData && initialData.subscribers) {
-                        setSubs(initialData.subscribers.map(s => ({...s})));
+                        setSubs(initialData.subscribers.map(s => ({...s}))); 
                     } else {
                         setSubs([getDefaultSub()]);
                     }
@@ -269,106 +255,63 @@
                 setSubs(newSubs); 
             };
             
-            const totalAmount = subs.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+            const totalAmount = subs.reduce((sum, s) => sum + (parseInt(s.amount) || 0), 0);
 
             const handleBulkImport = (newItems) => {
-                if (subs.length === 1 && subs[0].name === '' && Number(subs[0].amount) === Number(getDefaultType().defaultAmount)) {
-                    setSubs(newItems);
-                } else {
-                    setSubs([...subs, ...newItems]);
-                }
+                if (subs.length === 1 && subs[0].name === '') { setSubs(newItems); } else { setSubs([...subs, ...newItems]); }
             };
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                const validSubs = subs.filter(s => s.name && s.name.trim() !== '');
-                if (validSubs.length === 0) { alert('Введите хотя бы одного подписчика'); return; }
-                const hasInvalidAmount = validSubs.some(s => !s.amount || Number(s.amount) <= 0);
-                if (hasInvalidAmount) { alert('Укажите корректную сумму для каждого подписчика'); return; }
+                const validSubs = subs.filter(s => s.name.trim() !== '');
+                if (validSubs.length === 0) { console.warn('Введите хотя бы одного подписчика'); return; }
                 
-                if (validSubs.length > 0) {
-                    const lastValid = validSubs[validSubs.length - 1];
-                    localStorage.setItem('LAST_SUB_DEFAULTS', JSON.stringify({ period: lastValid.period, type: lastValid.type }));
-                }
+                const lastValid = validSubs[validSubs.length - 1];
+                localStorage.setItem('LAST_SUB_DEFAULTS', JSON.stringify({ period: lastValid.period, type: lastValid.type }));
                 
                 onSave({ 
-                    subscribers: validSubs.map(s => ({ ...s, amount: Number(s.amount), type: s.type || getDefaultType().id })), 
+                    subscribers: validSubs.map(s => ({...s, amount: parseInt(s.amount), type: s.type || getDefaultType().id })), 
                     totalAmount: totalAmount 
                 });
             };
-
-            const title = initialData ? `Редактирование заявки №${initialData.custom_id}` : `Новая Заявка №${nextId}`;
 
             return (
                 <>
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
                         <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                             <div className="bg-blue-700 p-4 flex justify-between items-center text-white shrink-0">
-                                <h2 className="text-xl font-bold flex items-center gap-2">{initialData ? <IconEdit /> : <IconPlus />} {title}</h2>
-                                <button onClick={onClose} className="hover:bg-blue-600 p-1 rounded"><IconX /></button>
+                                <h2 className="text-xl font-bold flex items-center gap-2">{initialData ? <IconEdit /> : <IconPlus />} {initialData ? `Редактирование №${initialData.custom_id}` : `Новая Заявка №${nextId}`}</h2>
+                                <button onClick={onClose} className="text-white hover:text-blue-200"><IconX /></button>
                             </div>
-                            
                             <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-grow flex flex-col gap-6">
                                 <div className="flex justify-between items-center flex-wrap gap-2">
                                     <h3 className="text-lg font-semibold text-gray-700">Список подписчиков</h3>
                                     <div className="flex gap-2">
-                                        <button type="button" onClick={() => setIsImportOpen(true)} className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-full font-medium flex items-center gap-1 hover:bg-green-700">
-                                            <IconImport /> Импорт из Списков
-                                        </button>
-                                        <button type="button" onClick={addSub} className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
-                                            <IconPlus /> Добавить вручную
-                                        </button>
+                                        <button type="button" onClick={() => setIsImportOpen(true)} className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-full hover:bg-green-700 flex items-center gap-1 transition-colors active:scale-95"><IconImport /> Импорт</button>
+                                        <button type="button" onClick={addSub} className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors active:scale-95"><IconPlus /> Добавить</button>
                                     </div>
                                 </div>
-
                                 <div className="space-y-4">
                                     {subs.map((sub, idx) => (
                                         <div key={idx} className="flex flex-col md:flex-row gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl relative">
-                                            <div className="md:w-8 flex items-center justify-center font-bold text-slate-400">{idx + 1}</div>
-                                            <div className="flex-grow grid grid-cols-1 md:grid-cols-5 gap-3">
-                                                <div className="md:col-span-2">
-                                                    <label className="block text-xs font-medium text-gray-500 mb-1">ФИО Подписчика*</label>
-                                                    <input className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={sub.name || ''} onChange={(e) => handleSubChange(idx, 'name', e.target.value)} required />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Тип подписки*</label>
-                                                    <select 
-                                                        className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                                        value={sub.type || getDefaultType().id}
-                                                        onChange={(e) => handleSubChange(idx, 'type', e.target.value)}
-                                                    >
-                                                        {Object.values(SUB_TYPES).map(t => (
-                                                            <option key={t.id} value={t.id}>{t.label}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Период</label>
-                                                    <input className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={sub.period || ''} onChange={(e) => handleSubChange(idx, 'period', e.target.value)} required />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Сумма (₸)*</label>
-                                                    <input type="number" className="w-full border rounded p-2 text-sm font-bold text-gray-800 focus:ring-2 focus:ring-red-500 outline-none" value={sub.amount} onChange={(e) => handleSubChange(idx, 'amount', e.target.value)} required min="1" />
-                                                </div>
+                                            <div className="md:w-8 flex items-center justify-center font-bold text-slate-400 shrink-0">{idx + 1}</div>
+                                            <div className="flex-grow grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                                <div className="col-span-2 sm:col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">ФИО</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.name} onChange={(e) => handleSubChange(idx, 'name', e.target.value)} required /></div>
+                                                <div className="col-span-1 sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Тип</label><select className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.type || getDefaultType().id} onChange={(e) => handleSubChange(idx, 'type', e.target.value)}>{Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
+                                                <div className="col-span-1 sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Период</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.period} onChange={(e) => handleSubChange(idx, 'period', e.target.value)} required /></div>
+                                                <div className="col-span-1 sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Сумма</label><input type="number" className="w-full border rounded-lg p-2 text-sm font-bold focus:ring-blue-500 focus:border-blue-500" value={sub.amount} onChange={(e) => handleSubChange(idx, 'amount', e.target.value)} required min="1" /></div>
+                                                <div className="col-span-2 sm:col-span-5"><label className="block text-xs font-medium text-gray-500 mb-1">Организация</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.org} onChange={(e) => handleSubChange(idx, 'org', e.target.value)} /></div>
                                             </div>
-                                            <div className="md:col-span-2">
-                                                <label className="block text-xs font-medium text-gray-500 mb-1">Организация</label>
-                                                <input className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={sub.org || ''} onChange={(e) => handleSubChange(idx, 'org', e.target.value)} />
-                                            </div>
-                                            {subs.length > 1 && <button type="button" onClick={() => removeSub(idx)} className="absolute top-2 right-2 md:static md:self-center text-red-400 hover:text-red-600 p-1"><IconX /></button>}
+                                            {subs.length > 1 && <button type="button" onClick={() => removeSub(idx)} className="absolute top-2 right-2 md:static text-red-400 hover:text-red-600 p-1 transition-colors active:scale-95" title="Удалить"><IconX /></button>}
                                         </div>
                                     ))}
                                 </div>
                             </form>
-
                             <div className="p-4 border-t bg-gray-50 flex justify-between items-center shrink-0">
                                 <div className="text-lg">Итого: <span className="font-bold text-blue-700">{totalAmount.toLocaleString()} ₸</span></div>
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg" disabled={isLoading}>Отмена</button>
-                                    <button onClick={handleSubmit} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md flex items-center gap-2" disabled={isLoading}>
-                                        {isLoading && <IconLoading />}
-                                        {initialData ? 'Сохранить изменения' : 'Создать заявку'}
-                                    </button>
+                                    <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-100 transition-colors active:scale-95">Отмена</button>
+                                    <button onClick={handleSubmit} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors active:scale-95">Сохранить</button>
                                 </div>
                             </div>
                         </div>
@@ -378,102 +321,137 @@
             );
         };
 
-        // --- Основное приложение ---
         const App = () => {
             const [subscriptions, setSubscriptions] = useState([]);
             const [filter, setFilter] = useState('');
             const [isModalOpen, setIsModalOpen] = useState(false);
-            const [editingSub, setEditingSub] = useState(null);
+            const [editingSub, setEditingSub] = useState(null); 
             const [printData, setPrintData] = useState(null);
             const [isLoading, setIsLoading] = useState(false);
             const [isClientReady, setIsClientReady] = useState(false);
             const [error, setError] = useState('');
 
+            // Инициализация Supabase
+            useEffect(() => {
+                if (window.supabase && window.supabase.createClient) {
+                    try {
+                        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                        setIsClientReady(true);
+                        console.log("Supabase клиент успешно инициализирован.");
+                    } catch (e) {
+                        setError("Ошибка инициализации Supabase: " + e.message);
+                        setIsClientReady(false);
+                    }
+                } else {
+                    // Эта ошибка возникает, если CDN не загрузился
+                    setError("Библиотека Supabase не найдена. Проверьте подключение к интернету или доступность CDN.");
+                    setIsClientReady(false);
+                }
+            }, []);
+
             const fetchSubscriptions = useCallback(async () => {
-                if (!supabase) return;
+                if (!supabaseClient) return;
                 setIsLoading(true); setError('');
                 try {
-                    const { data, error: fetchError } = await supabase.from(TABLE_NAME).select('id, custom_id, subscribers_json, total_amount, status, created_at').order('custom_id', { ascending: false });
+                    const { data, error: fetchError } = await supabaseClient.from(TABLE_NAME).select('id, custom_id, subscribers_json, total_amount, status, created_at').order('custom_id', { ascending: false });
                     if (fetchError) throw fetchError;
-                    const processedData = data.map(item => ({
-                        ...item,
-                        subscribers: JSON.parse(item.subscribers_json || '[]').map(sub => ({ ...sub, type: sub.type || getDefaultType().id }))
-                    }));
+                    const processedData = data.map(item => ({ ...item, subscribers: JSON.parse(item.subscribers_json || '[]').map(sub => ({...sub, type: sub.type || getDefaultType().id })) }));
                     setSubscriptions(processedData);
-                } catch (err) { console.error(err); setError(err.message || String(err)); } finally { setIsLoading(false); }
+                } catch (err) { 
+                    console.error("Ошибка при получении данных:", err); 
+                    setError("Ошибка при загрузке данных: " + (err.message || "Неизвестная ошибка")); 
+                } finally { setIsLoading(false); }
             }, []);
 
             useEffect(() => {
-                if (supabase) {
-                    setIsClientReady(true);
+                if (isClientReady && supabaseClient) {
                     fetchSubscriptions();
-                    try {
-                        const channel = supabase.channel('schema-db-changes').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => fetchSubscriptions()).subscribe();
-                        return () => {
-                            try { supabase.removeChannel(channel); } catch(e) { /* fallback */ }
-                        };
-                    } catch(e){ /* ignore realtime subscribe errors */ }
-                } else { setError("КЛЮЧИ НЕ ВСТАВЛЕНЫ!"); setIsClientReady(true); }
-            }, [fetchSubscriptions]);
+                    // Настройка Realtime Channel
+                    const channel = supabaseClient.channel('schema-db-changes')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => fetchSubscriptions())
+                        .subscribe();
+                    
+                    return () => {
+                        supabaseClient.removeChannel(channel);
+                        console.log("Supabase Realtime Channel отключен.");
+                    };
+                }
+            }, [isClientReady, fetchSubscriptions]);
 
             const handleSave = async (formData) => {
-                if (!supabase) return;
+                if (!supabaseClient) return;
                 setIsLoading(true); setError('');
-                const payload = { subscribers_json: JSON.stringify(formData.subscribers), total_amount: formData.totalAmount, status: editingSub ? editingSub.status : 'pending' };
+                const payload = { 
+                    subscribers_json: JSON.stringify(formData.subscribers), 
+                    total_amount: formData.totalAmount, 
+                    status: editingSub ? editingSub.status : 'pending',
+                    updated_at: new Date().toISOString()
+                };
                 try {
-                    if (editingSub) {
-                        await supabase.from(TABLE_NAME).update(payload).eq('id', editingSub.id);
-                    } else {
+                    if (editingSub) { 
+                        await supabaseClient.from(TABLE_NAME).update(payload).eq('id', editingSub.id); 
+                    }
+                    else {
                         const maxId = subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 2025);
-                        payload.custom_id = maxId + 1; payload.created_at = new Date().toISOString();
-                        await supabase.from(TABLE_NAME).insert([payload]);
+                        payload.custom_id = maxId + 1; 
+                        payload.created_at = new Date().toISOString();
+                        await supabaseClient.from(TABLE_NAME).insert([payload]);
                     }
                     setIsModalOpen(false); setEditingSub(null);
-                } catch (err) { console.error(err); setError(err.message || String(err)); } finally { setIsLoading(false); }
+                } catch (err) { 
+                    console.error("Ошибка при сохранении:", err); 
+                    setError("Ошибка при сохранении: " + (err.message || "Неизвестная ошибка")); 
+                } finally { setIsLoading(false); }
             };
 
             const handleDelete = async (id) => {
-                if (!supabase || !window.confirm('Вы уверены?')) return;
+                if (!supabaseClient || !window.confirm('Вы уверены? Это действие нельзя отменить.')) return;
                 setIsLoading(true); setError('');
-                try { await supabase.from(TABLE_NAME).delete().eq('id', id); } catch (err) { console.error(err); setError(err.message || String(err)); } finally { setIsLoading(false); }
+                try { 
+                    await supabaseClient.from(TABLE_NAME).delete().eq('id', id); 
+                } catch (err) { 
+                    console.error("Ошибка при удалении:", err); 
+                    setError("Ошибка при удалении: " + (err.message || "Неизвестная ошибка")); 
+                } finally { setIsLoading(false); }
             };
 
             const toggleStatus = async (id, currentStatus) => {
-                if (!supabase) return;
+                if (!supabaseClient) return;
                 setIsLoading(true); setError('');
-                try { await supabase.from(TABLE_NAME).update({ status: currentStatus === 'paid' ? 'pending' : 'paid' }).eq('id', id); } catch (err) { console.error(err); setError(err.message || String(err)); } finally { setIsLoading(false); }
+                try { 
+                    await supabaseClient.from(TABLE_NAME).update({ status: currentStatus === 'paid' ? 'pending' : 'paid' }).eq('id', id); 
+                } catch (err) { 
+                    console.error("Ошибка при смене статуса:", err); 
+                    setError("Ошибка при смене статуса: " + (err.message || "Неизвестная ошибка")); 
+                } finally { setIsLoading(false); }
             };
 
-            const handlePrint = (sub) => { setPrintData(null); setPrintData(sub); setTimeout(() => window.print(), 120); };
+            const handlePrint = (sub) => { setPrintData(null); setPrintData(sub); setTimeout(() => window.print(), 100); };
 
             const stats = useMemo(() => {
-                const total = subscriptions.reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0);
-                const paid = subscriptions.filter(s => s.status === 'paid').reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0);
+                const total = subscriptions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+                const paid = subscriptions.filter(s => s.status === 'paid').reduce((sum, s) => sum + (s.total_amount || 0), 0);
                 return { total, paid, count: subscriptions.length };
             }, [subscriptions]);
 
             const filteredSubs = subscriptions.filter(s => {
-                const search = (filter || '').toLowerCase();
-                try {
-                    const subscribers = (JSON.parse(s.subscribers_json || '[]').map(sub => (sub.name || '') + ' ' + (sub.org || '')).join(' ')).toLowerCase();
-                    return (s.custom_id && s.custom_id.toString().includes(search)) || subscribers.includes(search);
-                } catch(e) { return true; }
+                const search = filter.toLowerCase();
+                const subscribers = JSON.parse(s.subscribers_json || '[]').map(sub => sub.name + ' ' + sub.org).join(' ');
+                return s.custom_id.toString().includes(search) || subscribers.toLowerCase().includes(search);
             });
 
+            // Хелперы
             const getSubscriptionTypeColor = (typeId) => {
                 const type = getTypeById(typeId);
                 switch(type.id) {
-                    case SUB_TYPES.EDITORIAL.id: return '#FFD700';
-                    case SUB_TYPES.KAZPOST.id: return '#0000FF';
-                    default: return '#6b7280';
+                    case SUB_TYPES.EDITORIAL.id: return '#10b981'; 
+                    case SUB_TYPES.KAZPOST.id: return '#ef4444';
+                    default: return '#6b7280'; // Fallback for safety
                 }
             };
-            
-            const getPaymentClasses = (status) => {
-                return status === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200';
-            };
+            const getPaymentClasses = (status) => status === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200';
 
-            if (!isClientReady) return <div className="flex justify-center items-center h-full text-slate-500"><IconLoading /><span className="ml-2">Подключение...</span></div>;
+            if (!isClientReady && !error) return <div className="flex justify-center items-center h-full text-slate-500"><IconLoading /><span className="ml-2">Подключение...</span></div>;
             
             return (
                 <div className="flex flex-col h-full bg-slate-100">
@@ -482,21 +460,21 @@
                         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                             <div><h1 className="text-2xl font-bold flex items-center gap-2"><IconUsers /> Система Учета "Қарақия"</h1></div>
                             <div className="flex gap-4 bg-blue-900/50 p-2 rounded-lg text-sm">
-                                <div className="px-3 border-r border-blue-700"><div className="text-blue-300">Всего заявок</div><div className="font-bold text-lg">{stats.count}</div></div>
+                                <div className="px-3 border-r border-blue-700"><div className="text-blue-300">Всего</div><div className="font-bold text-lg">{stats.count}</div></div>
                                 <div className="px-3 border-r border-blue-700"><div className="text-blue-300">Ожидается</div><div className="font-bold text-lg text-yellow-400">{(stats.total - stats.paid).toLocaleString()} ₸</div></div>
                                 <div className="px-3"><div className="text-blue-300">Оплачено</div><div className="font-bold text-lg text-green-400">{stats.paid.toLocaleString()} ₸</div></div>
                             </div>
                         </div>
                     </header>
-                    {error && <div className="no-print bg-red-100 border-red-400 text-red-700 px-4 py-3 m-4 rounded">{error}</div>}
+                    {error && <div className="no-print bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 m-4 rounded-xl flex items-center gap-3"><IconAlert/> <div><div className="font-bold">Ошибка подключения:</div> {error}</div></div>}
                     <div className="no-print bg-white border-b border-gray-200 p-4 shadow-sm shrink-0 z-10">
                         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 justify-between">
                             <div className="relative w-full md:w-96"><div className="absolute left-3 top-3 text-gray-400"><IconSearch /></div><input type="text" placeholder="Поиск..." className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value={filter} onChange={e => setFilter(e.target.value)} /></div>
-                            <button onClick={() => { setEditingSub(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-md transition-all active:scale-95" disabled={!supabase}><IconPlus /> Создать заявку</button>
+                            <button onClick={() => { setEditingSub(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-50" disabled={!supabaseClient || isLoading}><IconPlus /> Создать заявку</button>
                         </div>
                     </div>
                     <div className="no-print flex-grow overflow-auto p-4 md:p-6">
-                        {isLoading && filteredSubs.length === 0 ? <div className="flex justify-center h-64 text-slate-500"><IconLoading /> Загрузка...</div> : 
+                        {isLoading && filteredSubs.length === 0 ? <div className="flex justify-center items-center h-64 text-slate-500"><IconLoading /><span className="ml-2">Загрузка данных...</span></div> : 
                         <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-slate-100 text-slate-600 uppercase text-xs font-bold sticky top-0 z-10 shadow-sm"><tr><th className="p-4 border-b w-20">№</th><th className="p-4 border-b">Подписчик / Тип</th><th className="p-4 border-b hidden md:table-cell">Период</th><th className="p-4 border-b text-right">Общая Сумма</th><th className="p-4 border-b text-center">Оплата</th><th className="p-4 border-b text-center">Действия</th></tr></thead>
@@ -520,9 +498,9 @@
                                                 })}
                                             </td>
                                             <td className="p-4 text-sm text-gray-600 hidden md:table-cell align-top">{sub.subscribers.length === 1 ? sub.subscribers[0].period : 'См. детали'}</td>
-                                            <td className="p-4 text-right font-bold text-slate-800 whitespace-nowrap align-top">{Number(sub.total_amount || 0).toLocaleString()} ₸</td>
-                                            <td className="p-4 text-center align-top"><button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)}`}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button></td>
-                                            <td className="p-4 text-center align-top"><div className="flex justify-center gap-2"><button onClick={() => handlePrint(sub)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg" title="Печать"><IconPrinter /></button><button onClick={() => { setEditingSub(sub); setIsModalOpen(true); }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg" title="Редактировать"><IconEdit /></button><button onClick={() => handleDelete(sub.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Удалить"><IconTrash /></button></div></td>
+                                            <td className="p-4 text-right font-bold text-slate-800 whitespace-nowrap align-top">{Number(sub.total_amount).toLocaleString()} ₸}</td>
+                                            <td className="p-4 text-center align-top"><button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)} transition-colors active:scale-95`} disabled={!supabaseClient || isLoading}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button></td>
+                                            <td className="p-4 text-center align-top"><div className="flex justify-center gap-2"><button onClick={() => handlePrint(sub)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors active:scale-95" title="Печать"><IconPrinter /></button><button onClick={() => { setEditingSub(sub); setIsModalOpen(true); }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors active:scale-95" title="Редактировать" disabled={!supabaseClient || isLoading}><IconEdit /></button><button onClick={() => handleDelete(sub.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95" title="Удалить" disabled={!supabaseClient || isLoading}><IconTrash /></button></div></td>
                                         </tr>
                                     ))}
                                     {filteredSubs.length === 0 && !isLoading && <tr><td colSpan="6" className="p-10 text-center text-gray-400">Нет данных.</td></tr>}
@@ -530,14 +508,7 @@
                             </table>
                         </div>}
                     </div>
-                    <ModalForm 
-                        isOpen={isModalOpen} 
-                        onClose={() => setIsModalOpen(false)} 
-                        onSave={handleSave} 
-                        nextId={subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 2025) + 1} 
-                        initialData={editingSub} 
-                        isLoading={isLoading} 
-                    />
+                    <ModalForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} nextId={subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 2025) + 1} initialData={editingSub} />
                 </div>
             );
         };
@@ -547,6 +518,3 @@
     </script>
 </body>
 </html>
-
-
-
