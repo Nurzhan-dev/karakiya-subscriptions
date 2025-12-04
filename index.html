@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система Учета Подписки</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -109,7 +110,7 @@
                             <div className="text-[10pt] font-bold">Кассирдің қолы</div>
                         </div>
                         <div className="text-center w-1/6">
-                            <div className="font-bold text-[12pt] border-2 border-black rounded-full w-10 h-10 flex items-center justify-center mx-auto opacity-30 rotate-12">М.О.</div>
+                            <div className="font-bold text-[12pt] border-2 border-black rounded-full w-10 h-10 flex items-center justify-center mx-auto opacity-30 rotate-12">печать</div>
                         </div>
                     </div>
                     <div className="absolute bottom-[-10px] left-0 text-xs text-gray-400 flex items-center gap-1 no-print"><IconScissors /> <span className="text-[10px]">қию сызығы</span></div>
@@ -477,14 +478,18 @@
                     <ReceiptTemplate data={printData} />
                     <header className="no-print bg-blue-800 text-white shadow-lg shrink-0 z-20">
                         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div><h1 className="text-2xl font-bold flex items-center gap-2"><IconUsers /> Система Учета "Қарақия"</h1></div>
+                            <div><h1 className="text-2xl font-bold flex items-center gap-3">
+                           <img src="logo.png" 
+                           className="h-10 w-10 rounded-full shadow-md border-2 border-white object-cover"  alt="Лого" />
+                           Система Учета Редакции "Қарақия"
+                           </h1> </div>
                             <div className="flex gap-4 bg-blue-900/50 p-2 rounded-lg text-sm">
                                 <div className="px-3 border-r border-blue-700"><div className="text-blue-300">Всего</div><div className="font-bold text-lg">{stats.count}</div></div>
                                 <div className="px-3 border-r border-blue-700"><div className="text-blue-300">Ожидается</div><div className="font-bold text-lg text-yellow-400">{(stats.total - stats.paid).toLocaleString()} ₸</div></div>
                                 <div className="px-3"><div className="text-blue-300">Оплачено</div><div className="font-bold text-lg text-green-400">{stats.paid.toLocaleString()} ₸</div></div>
                             </div>
                         </div>
-                    </header>
+                    </header>        
                     {error && <div className="no-print bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 m-4 rounded-xl flex items-center gap-3"><IconAlert/> <div><div className="font-bold">Ошибка подключения/базы данных:</div> {error}</div></div>}
                     <div className="no-print bg-white border-b border-gray-200 p-4 shadow-sm shrink-0 z-10">
                         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 justify-between">
@@ -516,7 +521,7 @@
                                                     );
                                                 })}
                                             </td>
-                                            <td className="p-4 text-sm text-gray-600 hidden md:table-cell align-top">{sub.subscribers.length === 1 ? sub.subscribers[0].period : 'См. детали'}</td>
+                                            <td className="p-4 text-sm text-gray-600 hidden md:table-cell align-top"> {sub.subscribers[0].period} </td>
                                             <td className="p-4 text-right font-bold text-slate-800 whitespace-nowrap align-top">{Number(sub.total_amount).toLocaleString()} ₸}</td>
                                             <td className="p-4 text-center align-top"><button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)} transition-colors active:scale-95`} disabled={!supabaseClient || isLoading}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button></td>
                                             <td className="p-4 text-center align-top"><div className="flex justify-center gap-2"><button onClick={() => handlePrint(sub)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors active:scale-95" title="Печать"><IconPrinter /></button><button onClick={() => { setEditingSub(sub); setIsModalOpen(true); }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors active:scale-95" title="Редактировать" disabled={!supabaseClient || isLoading}><IconEdit /></button><button onClick={() => handleDelete(sub.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95" title="Удалить" disabled={!supabaseClient || isLoading}><IconTrash /></button></div></td>
@@ -527,7 +532,7 @@
                             </table>
                         </div>}
                     </div>
-                    <ModalForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} nextId={subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 2025) + 1} initialData={editingSub} />
+                    <ModalForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} nextId={subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 1000) + 1} initialData={editingSub} />
                 </div>
             );
         };
@@ -537,3 +542,4 @@
     </script>
 </body>
 </html>
+
