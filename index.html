@@ -9,7 +9,6 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Подключение Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @media print {
@@ -31,6 +30,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        input, select, button { touch-action: manipulation; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
@@ -41,6 +41,7 @@
         const { useState, useEffect, useMemo, useCallback } = React;
         const { createRoot } = ReactDOM;
 
+        // --- КОНФИГУРАЦИЯ SUPABASE ---
         const SUPABASE_URL = "https://cyrqmfaxouhkojpgdyzz.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5cnFtZmF4b3Voa29qcGdkeXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2Nzc5NjAsImV4cCI6MjA4MDI1Mzk2MH0.aF9UT5Usok9q6J8QUeRaVcFABYXJ4KAD4b4ATZ19A-Q";
         const TABLE_NAME = 'subscriptions'; 
@@ -141,63 +142,44 @@
             const [text, setText] = useState('');
             const [defaultOrg, setDefaultOrg] = useState('');
             const [defaultPeriod, setDefaultPeriod] = useState('Қаңтар 2026 – Желтоқсан 2026');
-            
             const [selectedType, setSelectedType] = useState(SUB_TYPES.EDITORIAL.id); 
 
             if (!isOpen) return null;
 
             const subType = getTypeById(selectedType);
             const defaultAmount = subType.defaultAmount;
-            
             const lines = text.split('\n').filter(line => line.trim() !== '');
 
             const handleImport = () => {
                 if (lines.length === 0) { console.warn("Вставьте текст!"); return; }
-                
-                const newSubs = lines.map(line => ({
-                    name: line.trim(),
-                    org: defaultOrg,
-                    period: defaultPeriod,
-                    amount: defaultAmount,
-                    type: selectedType
-                }));
-
-                onImport(newSubs);
-                onClose();
-                setText('');
+                const newSubs = lines.map(line => ({ name: line.trim(), org: defaultOrg, period: defaultPeriod, amount: defaultAmount, type: selectedType }));
+                onImport(newSubs); onClose(); setText('');
             };
 
             return (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl p-6">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl p-6 flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center mb-4 shrink-0">
                             <h2 className="text-xl font-bold flex items-center gap-2"><IconImport /> Импорт из текста</h2>
                             <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><IconX /></button>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">Скопируйте список ФИО из источника:</p>
-                        <textarea className="w-full h-40 border rounded p-2 text-sm mb-4 focus:ring-blue-500 focus:border-blue-500" placeholder="Иванов И.И.&#10;Петров П.П." value={text} onChange={e => setText(e.target.value)}></textarea>
-                        
-                        <div className="bg-green-50 p-3 rounded text-sm space-y-2 mb-4">
-                            <p className="font-semibold text-green-800">Настройки импорта:</p>
-                            <div>
-                                <label className="block text-xs text-gray-500">Тип подписки</label>
-                                <select className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={selectedType} onChange={e => setSelectedType(e.target.value)}>
-                                    {Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                                </select>
+                        <div className="flex-grow overflow-y-auto">
+                             <p className="text-sm text-gray-600 mb-2">Скопируйте список ФИО из источника:</p>
+                            <textarea className="w-full h-40 border rounded p-2 text-sm mb-4 focus:ring-blue-500 focus:border-blue-500" placeholder="Иванов И.И.&#10;Петров П.П." value={text} onChange={e => setText(e.target.value)}></textarea>
+                            
+                            <div className="bg-green-50 p-3 rounded text-sm space-y-3 mb-4">
+                                <p className="font-semibold text-green-800">Настройки импорта:</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                     <div><label className="block text-xs text-gray-500 mb-1">Тип подписки</label><select className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={selectedType} onChange={e => setSelectedType(e.target.value)}>{Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
+                                     <div><label className="block text-xs text-gray-500 mb-1">Сумма (₸)</label><input type="number" className="w-full border rounded p-2 bg-gray-100 font-bold" value={defaultAmount} readOnly /></div>
+                                </div>
+                                <div><label className="block text-xs text-gray-500 mb-1">Организация</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultOrg} onChange={e => setDefaultOrg(e.target.value)} /></div>
+                                <div><label className="block text-xs text-gray-500 mb-1">Период</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultPeriod} onChange={e => setDefaultPeriod(e.target.value)} /></div>
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-500">Сумма (₸)</label>
-                                <input type="number" className="w-full border rounded p-2 bg-gray-100 font-bold" value={defaultAmount} readOnly />
-                            </div>
-                            <div><label className="block text-xs text-gray-500">Организация</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultOrg} onChange={e => setDefaultOrg(e.target.value)} /></div>
-                            <div><label className="block text-xs text-gray-500">Период</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultPeriod} onChange={e => setDefaultPeriod(e.target.value)} /></div>
                         </div>
-
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 shrink-0 mt-4">
                             <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-100">Отмена</button>
-                            <button type="button" onClick={handleImport} className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 flex items-center gap-1" disabled={lines.length === 0}>
-                                {lines.length > 0 ? `Импортировать (${lines.length})` : 'Вставить список'}
-                            </button>
+                            <button type="button" onClick={handleImport} className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 flex items-center gap-1" disabled={lines.length === 0}>{lines.length > 0 ? `Импортировать (${lines.length})` : 'Вставить список'}</button>
                         </div>
                     </div>
                 </div>
@@ -216,11 +198,7 @@
 
             useEffect(() => {
                 if (isOpen) {
-                    if (initialData && initialData.subscribers) {
-                        setSubs(initialData.subscribers.map(s => ({...s}))); 
-                    } else {
-                        setSubs([getDefaultSub()]);
-                    }
+                    if (initialData && initialData.subscribers) { setSubs(initialData.subscribers.map(s => ({...s}))); } else { setSubs([getDefaultSub()]); }
                 }
             }, [isOpen, initialData, getDefaultSub]);
 
@@ -234,73 +212,65 @@
             const removeSub = (idx) => { if (subs.length > 1) setSubs(subs.filter((_, i) => i !== idx)); };
             
             const handleSubChange = (idx, field, val) => { 
-                const newSubs = [...subs]; 
-                newSubs[idx][field] = val; 
-                if (field === 'type') {
-                    const newType = getTypeById(val);
-                    newSubs[idx].amount = newType.defaultAmount;
-                }
+                const newSubs = [...subs]; newSubs[idx][field] = val; 
+                if (field === 'type') { const newType = getTypeById(val); newSubs[idx].amount = newType.defaultAmount; }
                 setSubs(newSubs); 
             };
             
             const totalAmount = subs.reduce((sum, s) => sum + (parseInt(s.amount) || 0), 0);
 
-            const handleBulkImport = (newItems) => {
-                if (subs.length === 1 && subs[0].name === '') { setSubs(newItems); } else { setSubs([...subs, ...newItems]); }
-            };
+            const handleBulkImport = (newItems) => { if (subs.length === 1 && subs[0].name === '') { setSubs(newItems); } else { setSubs([...subs, ...newItems]); } };
 
             const handleSubmit = (e) => {
                 e.preventDefault();
                 const validSubs = subs.filter(s => s.name.trim() !== '');
                 if (validSubs.length === 0) { console.warn('Введите хотя бы одного подписчика'); return; }
-                
                 const lastValid = validSubs[validSubs.length - 1];
                 localStorage.setItem('LAST_SUB_DEFAULTS', JSON.stringify({ period: lastValid.period, type: lastValid.type }));
-                
-                // Передаем данные, убедившись, что amount — это число
-                onSave({ 
-                    subscribers: validSubs.map(s => ({...s, amount: parseInt(s.amount) || 0, type: s.type || getDefaultType().id })), 
-                    totalAmount: totalAmount 
-                });
+                onSave({ subscribers: validSubs.map(s => ({...s, amount: parseInt(s.amount) || 0, type: s.type || getDefaultType().id })), totalAmount: totalAmount });
             };
 
             return (
                 <>
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-                        <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                            <div className="bg-blue-700 p-4 flex justify-between items-center text-white shrink-0">
-                                <h2 className="text-xl font-bold flex items-center gap-2">{initialData ? <IconEdit /> : <IconPlus />} {initialData ? `Редактирование №${initialData.custom_id}` : `Новая Заявка №${nextId}`}</h2>
-                                <button onClick={onClose} className="text-white hover:text-blue-200"><IconX /></button>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fade-in">
+                        <div className="bg-white w-full max-w-5xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[98vh] sm:max-h-[95vh]">
+                            <div className="bg-blue-700 p-3 sm:p-4 flex justify-between items-center text-white shrink-0">
+                                {/* ИЗМЕНЕНИЕ: Убран номер заявки из заголовка */}
+                                <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">{initialData ? <IconEdit /> : <IconPlus />} {initialData ? `Редактирование заявки` : `Новая заявка`}</h2>
+                                <button onClick={onClose} className="text-white hover:text-blue-200 p-1"><IconX /></button>
                             </div>
-                            <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-grow flex flex-col gap-6">
-                                <div className="flex justify-between items-center flex-wrap gap-2">
-                                    <h3 className="text-lg font-semibold text-gray-700">Список подписчиков</h3>
+                            <form onSubmit={handleSubmit} className="p-3 sm:p-6 overflow-y-auto flex-grow flex flex-col gap-4 sm:gap-6">
+                                <div className="flex justify-between items-center flex-wrap gap-2 shrink-0">
+                                    <h3 className="text-md sm:text-lg font-semibold text-gray-700">Подписчики</h3>
                                     <div className="flex gap-2">
-                                        <button type="button" onClick={() => setIsImportOpen(true)} className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-full hover:bg-green-700 flex items-center gap-1 transition-colors active:scale-95"><IconImport /> Импорт</button>
-                                        <button type="button" onClick={addSub} className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors active:scale-95"><IconPlus /> Добавить</button>
+                                        <button type="button" onClick={() => setIsImportOpen(true)} className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-full hover:bg-green-700 flex items-center gap-1 transition-colors active:scale-95"><IconImport /> <span className="hidden sm:inline">Импорт</span></button>
+                                        <button type="button" onClick={addSub} className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors active:scale-95"><IconPlus /> <span className="hidden sm:inline">Добавить</span></button>
                                     </div>
                                 </div>
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                     {subs.map((sub, idx) => (
-                                        <div key={idx} className="flex flex-col md:flex-row gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl relative">
-                                            <div className="md:w-8 flex items-center justify-center font-bold text-slate-400 shrink-0">{idx + 1}</div>
-                                            <div className="flex-grow grid grid-cols-2 sm:grid-cols-5 gap-3">
-                                                <div className="col-span-2 sm:col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">ФИО</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.name} onChange={(e) => handleSubChange(idx, 'name', e.target.value)} required /></div>
-                                                <div className="col-span-1 sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Тип</label><select className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.type || getDefaultType().id} onChange={(e) => handleSubChange(idx, 'type', e.target.value)}>{Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
-                                                <div className="col-span-1 sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Период</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.period} onChange={(e) => handleSubChange(idx, 'period', e.target.value)} required /></div>
-                                                <div className="col-span-1 sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Сумма</label><input type="number" className="w-full border rounded-lg p-2 text-sm font-bold focus:ring-blue-500 focus:border-blue-500" value={sub.amount} onChange={(e) => handleSubChange(idx, 'amount', e.target.value)} required min="1" /></div>
-                                                <div className="col-span-2 sm:col-span-5"><label className="block text-xs font-medium text-gray-500 mb-1">Организация</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.org} onChange={(e) => handleSubChange(idx, 'org', e.target.value)} /></div>
+                                        <div key={idx} className="flex flex-col sm:flex-row gap-3 p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-xl relative">
+                                            <div className="sm:w-8 flex items-center justify-between sm:justify-center font-bold text-slate-400 shrink-0 border-b sm:border-b-0 pb-2 sm:pb-0 mb-2 sm:mb-0">
+                                                <span>{idx + 1}</span>
+                                                {subs.length > 1 && <button type="button" onClick={() => removeSub(idx)} className="sm:hidden text-red-400 hover:text-red-600 p-1 transition-colors active:scale-95" title="Удалить"><IconX /></button>}
                                             </div>
-                                            {subs.length > 1 && <button type="button" onClick={() => removeSub(idx)} className="absolute top-2 right-2 md:static text-red-400 hover:text-red-600 p-1 transition-colors active:scale-95" title="Удалить"><IconX /></button>}
+                                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-4">
+                                                <div className="sm:col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">ФИО</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.name} onChange={(e) => handleSubChange(idx, 'name', e.target.value)} required placeholder="Иванов И.И." /></div>
+                                                <div className="sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Тип</label><select className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.type || getDefaultType().id} onChange={(e) => handleSubChange(idx, 'type', e.target.value)}>{Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
+                                                <div className="sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Период</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.period} onChange={(e) => handleSubChange(idx, 'period', e.target.value)} required /></div>
+                                                <div className="sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Сумма</label><input type="number" className="w-full border rounded-lg p-2 text-sm font-bold focus:ring-blue-500 focus:border-blue-500 bg-gray-50" value={sub.amount} onChange={(e) => handleSubChange(idx, 'amount', e.target.value)} required min="1" /></div>
+                                                <div className="sm:col-span-5"><label className="block text-xs font-medium text-gray-500 mb-1">Организация (необязательно)</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.org} onChange={(e) => handleSubChange(idx, 'org', e.target.value)} placeholder="Название учреждения" /></div>
+                                            </div>
+                                            {subs.length > 1 && <button type="button" onClick={() => removeSub(idx)} className="hidden sm:block text-red-400 hover:text-red-600 p-1 transition-colors active:scale-95 shrink-0 self-start mt-6" title="Удалить"><IconX /></button>}
                                         </div>
                                     ))}
                                 </div>
                             </form>
-                            <div className="p-4 border-t bg-gray-50 flex justify-between items-center shrink-0">
-                                <div className="text-lg">Итого: <span className="font-bold text-blue-700">{totalAmount.toLocaleString()} ₸</span></div>
-                                <div className="flex gap-3">
-                                    <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-100 transition-colors active:scale-95">Отмена</button>
-                                    <button onClick={handleSubmit} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors active:scale-95">Сохранить</button>
+                            <div className="p-3 sm:p-4 border-t bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+                                <div className="text-lg order-2 sm:order-1">Итого: <span className="font-bold text-blue-700">{totalAmount.toLocaleString()} ₸</span></div>
+                                <div className="flex gap-3 order-1 sm:order-2 w-full sm:w-auto justify-end">
+                                    <button type="button" onClick={onClose} className="flex-1 sm:flex-none px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-100 transition-colors active:scale-95 text-center">Отмена</button>
+                                    <button onClick={handleSubmit} className="flex-1 sm:flex-none px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors active:scale-95 text-center">Сохранить</button>
                                 </div>
                             </div>
                         </div>
@@ -331,7 +301,7 @@
                         setIsClientReady(false);
                     }
                 } else {
-                    setError("Библиотека Supabase не найдена. Проверьте подключение к интернету или доступность CDN.");
+                    setError("Библиотека Supabase не найдена. Проверьте подключение CDN.");
                     setIsClientReady(false);
                 }
             }, []);
@@ -344,134 +314,63 @@
                     if (fetchError) throw fetchError;
                     const processedData = data.map(item => ({ ...item, subscribers: JSON.parse(item.subscribers_json || '[]').map(sub => ({...sub, type: sub.type || getDefaultType().id })) }));
                     setSubscriptions(processedData);
-                } catch (err) { 
-                    console.error("Ошибка при получении данных:", err); 
-                    setError("Ошибка при загрузке данных: " + (err.message || "Неизвестная ошибка")); 
+                } catch (err) { console.error("Ошибка при получении данных:", err); setError("Ошибка при загрузке данных: " + (err.message || "Неизвестная ошибка")); 
                 } finally { setIsLoading(false); }
             }, []);
 
             useEffect(() => {
                 if (isClientReady && supabaseClient) {
                     fetchSubscriptions();
-                    
-                    const channel = supabaseClient.channel('schema-db-changes')
-                        .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => fetchSubscriptions())
-                        .subscribe();
-                    
-                    return () => {
-                        supabaseClient.removeChannel(channel);
-                        console.log("Supabase Realtime Channel отключен.");
-                    };
+                    const channel = supabaseClient.channel('schema-db-changes').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => fetchSubscriptions()).subscribe();
+                    return () => { supabaseClient.removeChannel(channel); };
                 }
             }, [isClientReady, fetchSubscriptions]);
 
             const handleSave = async (formData) => {
-                if (!supabaseClient) {
-                    setError("Supabase клиент не инициализирован.");
-                    return;
-                }
+                if (!supabaseClient) return setError("Client not initialized");
                 setIsLoading(true); setError('');
-                
                 const isEditing = !!editingSub;
-
-                const payload = { 
-                    subscribers_json: JSON.stringify(formData.subscribers), 
-                    
-                    total_amount: Number(formData.totalAmount), 
-                    status: isEditing ? editingSub.status : 'pending',
-                    updated_at: new Date().toISOString() 
-                };
-
+                const payload = { subscribers_json: JSON.stringify(formData.subscribers), total_amount: Number(formData.totalAmount), status: isEditing ? editingSub.status : 'pending', updated_at: new Date().toISOString() };
                 try {
                     let operation;
-                    
-                    if (isEditing) { 
-                        // UPDATE: не отправляем custom_id и created_at
-                        operation = supabaseClient.from(TABLE_NAME).update(payload).eq('id', editingSub.id); 
-                    }
-                    else {
-                        // INSERT: Рассчитываем custom_id и добавляем его в payload.
-                        // created_at не добавляем, полагаемся на DB default.
-                        const maxId = subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 2025);
-                        payload.custom_id = maxId + 1; 
-                        
-                        operation = supabaseClient.from(TABLE_NAME).insert([payload]);
-                    }
-                    
-                    const { error: dbError } = await operation;
-
-                    if (dbError) {
-                         // Пробрасываем ошибку для детальной обработки в catch
-                        throw dbError;
-                    }
-                    
+                    if (isEditing) { operation = supabaseClient.from(TABLE_NAME).update(payload).eq('id', editingSub.id); }
+                    else { const maxId = subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 2025); payload.custom_id = maxId + 1; operation = supabaseClient.from(TABLE_NAME).insert([payload]); }
+                    const { error: dbError } = await operation; if (dbError) throw dbError;
                     setIsModalOpen(false); setEditingSub(null);
-                } catch (err) { 
-                    console.error("Ошибка при сохранении:", err); 
-                    
-                    let detailedMessage = "Неизвестная ошибка сохранения.";
-                    if (err.message) {
-                        detailedMessage = err.message;
-                    } else if (err.details) {
-                        detailedMessage = err.details; // Детали ошибки Supabase
-                    } else if (err.code) {
-                        detailedMessage = `Код ошибки DB ${err.code}: ${err.hint || 'Проверьте ограничения схемы (NOT NULL/тип данных).'}`;
-                    }
-
-                    setError(`Ошибка при сохранении данных: ${detailedMessage}`); 
-                } finally { 
-                    setIsLoading(false); 
-                }
+                } catch (err) { console.error("Ошибка сохранения:", err); setError(`Ошибка при сохранении: ${err.message || err.details || err.code}`); 
+                } finally { setIsLoading(false); }
             };
 
             const handleDelete = async (id) => {
-                if (!supabaseClient || !window.confirm('Вы уверены? Это действие нельзя отменить.')) return;
+                if (!supabaseClient || !window.confirm('Удалить заявку?')) return;
                 setIsLoading(true); setError('');
-                try { 
-                    await supabaseClient.from(TABLE_NAME).delete().eq('id', id); 
-                } catch (err) { 
-                    console.error("Ошибка при удалении:", err); 
-                    setError("Ошибка при удалении: " + (err.message || "Неизвестная ошибка")); 
-                } finally { setIsLoading(false); }
+                try { await supabaseClient.from(TABLE_NAME).delete().eq('id', id); } catch (err) { setError("Ошибка удаления: " + err.message); } finally { setIsLoading(false); }
             };
 
             const toggleStatus = async (id, currentStatus) => {
                 if (!supabaseClient) return;
                 setIsLoading(true); setError('');
-                try { 
-                    await supabaseClient.from(TABLE_NAME).update({ status: currentStatus === 'paid' ? 'pending' : 'paid' }).eq('id', id); 
-                } catch (err) { 
-                    console.error("Ошибка при смене статуса:", err); 
-                    setError("Ошибка при смене статуса: " + (err.message || "Неизвестная ошибка")); 
-                } finally { setIsLoading(false); }
+                try { await supabaseClient.from(TABLE_NAME).update({ status: currentStatus === 'paid' ? 'pending' : 'paid' }).eq('id', id); } catch (err) { setError("Ошибка статуса: " + err.message); } finally { setIsLoading(false); }
             };
 
             const handlePrint = (sub) => { setPrintData(null); setPrintData(sub); setTimeout(() => window.print(), 100); };
 
            const stats = useMemo(() => {
-           const total = subscriptions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
-           const paid = subscriptions.filter(s => s.status === 'paid').reduce((sum, s) => sum + (s.total_amount || 0), 0);
-
-           const subscribersCount = subscriptions.reduce((sum, s) => {
-           return sum + (s.subscribers?.length || 0);
-           }, 0);
-
-           return { total, paid, count: subscribersCount };
+               const total = subscriptions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+               const paid = subscriptions.filter(s => s.status === 'paid').reduce((sum, s) => sum + (s.total_amount || 0), 0);
+               const subscribersCount = subscriptions.reduce((sum, s) => sum + (s.subscribers?.length || 0), 0);
+               return { total, paid, count: subscribersCount };
            }, [subscriptions]);
 
             const filteredSubs = subscriptions.filter(s => {
                 const search = filter.toLowerCase();
-                const subscribers = JSON.parse(s.subscribers_json || '[]').map(sub => sub.name + ' ' + sub.org).join(' ');
+                const subscribers = JSON.parse(s.subscribers_json || '[]').map(sub => sub.name + ' ' + (sub.org || '')).join(' ');
                 return s.custom_id.toString().includes(search) || subscribers.toLowerCase().includes(search);
             });
 
             const getSubscriptionTypeColor = (typeId) => {
                 const type = getTypeById(typeId);
-                switch(type.id) {
-                    case SUB_TYPES.EDITORIAL.id: return '#FFD700'; 
-                    case SUB_TYPES.KAZPOST.id: return '#0000FF';
-                    default: return '#6b7280'; // Fallback for safety
-                }
+                switch(type.id) { case SUB_TYPES.EDITORIAL.id: return '#FFD700'; case SUB_TYPES.KAZPOST.id: return '#0000FF'; default: return '#6b7280'; }
             };
             const getPaymentClasses = (status) => status === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200';
 
@@ -480,60 +379,101 @@
             return (
                 <div className="flex flex-col h-full bg-slate-100">
                     <ReceiptTemplate data={printData} />
-                    <header className="no-print bg-blue-800 text-white shadow-lg shrink-0 z-20">
-                        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div><h1 className="text-2xl font-bold flex items-center gap-3">
-                           <img src="logo.png" 
-                           className="h-10 w-10 rounded-full shadow-md border-2 border-white object-cover"  alt="Лого" />
-                           Система Учета Редакции "Қарақия"
-                           </h1> </div>
-                            <div className="flex gap-4 bg-blue-900/50 p-2 rounded-lg text-sm">
-                                <div className="px-3 border-r border-blue-700"><div className="text-blue-300">Всего</div><div className="font-bold text-lg">{stats.count}</div></div>
-                                <div className="px-3 border-r border-blue-700"><div className="text-blue-300">Ожидается</div><div className="font-bold text-lg text-yellow-400">{(stats.total - stats.paid).toLocaleString()} ₸</div></div>
-                                <div className="px-3"><div className="text-blue-300">Оплачено</div><div className="font-bold text-lg text-green-400">{stats.paid.toLocaleString()} ₸</div></div>
+                    <header className="no-print bg-blue-800 text-white shadow-lg shrink-0 z-20 px-4 py-3 sm:py-4">
+                        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div><h1 className="text-lg sm:text-2xl font-bold flex items-center gap-3"><img src="logo.png" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full shadow-md border-2 border-white object-cover" alt="Лого" /><span className="truncate">Учет "Қарақия"</span></h1></div>
+                            <div className="flex gap-2 sm:gap-4 bg-blue-900/50 p-2 rounded-lg text-xs sm:text-sm w-full sm:w-auto justify-around sm:justify-start">
+                                <div className="px-2 sm:px-3 border-r border-blue-700 text-center sm:text-left"><div className="text-blue-300">Всего</div><div className="font-bold text-base sm:text-lg">{stats.count}</div></div>
+                                <div className="px-2 sm:px-3 border-r border-blue-700 text-center sm:text-left"><div className="text-blue-300">Ожидается</div><div className="font-bold text-base sm:text-lg text-yellow-400">{(stats.total - stats.paid).toLocaleString()}</div></div>
+                                <div className="px-2 sm:px-3 text-center sm:text-left"><div className="text-blue-300">Оплачено</div><div className="font-bold text-base sm:text-lg text-green-400">{stats.paid.toLocaleString()}</div></div>
                             </div>
                         </div>
                     </header>        
-                    {error && <div className="no-print bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 m-4 rounded-xl flex items-center gap-3"><IconAlert/> <div><div className="font-bold">Ошибка подключения/базы данных:</div> {error}</div></div>}
-                    <div className="no-print bg-white border-b border-gray-200 p-4 shadow-sm shrink-0 z-10">
-                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 justify-between">
-                            <div className="relative w-full md:w-96"><div className="absolute left-3 top-3 text-gray-400"><IconSearch /></div><input type="text" placeholder="Поиск..." className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value={filter} onChange={e => setFilter(e.target.value)} /></div>
-                            <button onClick={() => { setEditingSub(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-50" disabled={!supabaseClient || isLoading}><IconPlus /> Создать заявку</button>
+                    {error && <div className="no-print bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 m-4 rounded-xl flex items-center gap-3 text-sm"><IconAlert/> <div className="break-words"><b>Ошибка:</b> {error}</div></div>}
+                    <div className="no-print bg-white border-b border-gray-200 p-3 sm:p-4 shadow-sm shrink-0 z-10">
+                        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between">
+                            <div className="relative w-full sm:w-96"><div className="absolute left-3 top-2.5 text-gray-400"><IconSearch /></div><input type="text" placeholder="Поиск..." className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value={filter} onChange={e => setFilter(e.target.value)} /></div>
+                            <button onClick={() => { setEditingSub(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 rounded-lg font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-50 w-full sm:w-auto" disabled={!supabaseClient || isLoading}><IconPlus /> Создать</button>
                         </div>
                     </div>
-                    <div className="no-print flex-grow overflow-auto p-4 md:p-6">
-                        {isLoading && filteredSubs.length === 0 ? <div className="flex justify-center items-center h-64 text-slate-500"><IconLoading /><span className="ml-2">Загрузка данных...</span></div> : 
-                        <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-100 text-slate-600 uppercase text-xs font-bold sticky top-0 z-10 shadow-sm"><tr><th className="p-4 border-b w-20">№</th><th className="p-4 border-b">Подписчик / Тип</th><th className="p-4 border-b hidden md:table-cell">Период</th><th className="p-4 border-b text-right">Общая Сумма</th><th className="p-4 border-b text-center">Оплата</th><th className="p-4 border-b text-center">Действия</th></tr></thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {filteredSubs.map(sub => (
-                                        <tr key={sub.id} className="hover:bg-blue-50 transition-colors group">
-                                            <td className="p-4 font-mono font-bold text-slate-500 align-top">#{sub.custom_id}</td>
-                                            <td className="p-4 align-top">
-                                                {sub.subscribers.map((person, idx) => {
-                                                    const subType = getTypeById(person.type);
-                                                    return (
-                                                        <div key={idx} className="mb-2 pb-1 border-b border-dashed border-gray-200 last:border-0 last:pb-0">
-                                                            <div className="font-bold text-slate-800 text-sm">{person.name}</div>
-                                                            <div className="flex justify-between items-center text-xs text-gray-500 mt-0.5">
-                                                                <span className="font-bold px-2 py-0.5 rounded-full text-white text-[10px] uppercase tracking-wider" style={{backgroundColor: getSubscriptionTypeColor(person.type)}}>{subType.label.split(' ')[0]}</span>
-                                                                <span className="font-semibold text-slate-600 bg-slate-100 px-1 rounded">{Number(person.amount).toLocaleString()} ₸}</span>
-                                                            </div>
-                                                            <div className="text-[10px] text-gray-400">{person.org || '—'}</div>
+                    
+                    <div className="no-print flex-grow overflow-y-auto overflow-x-hidden p-3 sm:p-6 bg-slate-100">
+                        {isLoading && filteredSubs.length === 0 ? <div className="flex justify-center items-center h-64 text-slate-500"><IconLoading /><span className="ml-2">Загрузка...</span></div> : 
+                        <div className="max-w-7xl mx-auto">
+                            
+                            {/* === МОБИЛЬНЫЙ ВИД (КАРТОЧКИ) === */}
+                            <div className="block sm:hidden space-y-4 pb-6">
+                                {filteredSubs.map(sub => (
+                                    <div key={sub.id} className="bg-white rounded-xl shadow-sm p-4 border border-slate-200">
+                                        {/* ИЗМЕНЕНИЕ: Убран номер заявки, осталась только кнопка справа */}
+                                        <div className="flex justify-end items-center mb-3 pb-2 border-b border-slate-100">
+                                            <button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)} transition-colors active:scale-95`} disabled={!supabaseClient || isLoading}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {sub.subscribers.map((person, idx) => {
+                                                const subType = getTypeById(person.type);
+                                                return (
+                                                    <div key={idx} className="pb-3 border-b border-dashed border-slate-200 last:border-0 last:pb-0">
+                                                        <div className="font-bold text-slate-800">{person.name}</div>
+                                                        {person.org && <div className="text-sm text-slate-500 truncate">{person.org}</div>}
+                                                        <div className="flex justify-between items-end mt-2 text-sm">
+                                                             <div className="flex flex-col gap-1">
+                                                                <span className="font-bold px-2 py-0.5 rounded-full text-white text-[10px] uppercase tracking-wider w-fit" style={{backgroundColor: getSubscriptionTypeColor(person.type)}}>{subType.label}</span>
+                                                                <span className="text-xs text-slate-400">{person.period}</span>
+                                                             </div>
+                                                            <span className="font-bold text-base text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">{Number(person.amount).toLocaleString()} ₸</span>
                                                         </div>
-                                                    );
-                                                })}
-                                            </td>
-                                            <td className="p-4 text-sm text-gray-600 hidden md:table-cell align-top"> {sub.subscribers[0].period} </td>
-                                            <td className="p-4 text-right font-bold text-slate-800 whitespace-nowrap align-top">{Number(sub.total_amount).toLocaleString()} ₸}</td>
-                                            <td className="p-4 text-center align-top"><button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)} transition-colors active:scale-95`} disabled={!supabaseClient || isLoading}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button></td>
-                                            <td className="p-4 text-center align-top"><div className="flex justify-center gap-2"><button onClick={() => handlePrint(sub)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors active:scale-95" title="Печать"><IconPrinter /></button><button onClick={() => { setEditingSub(sub); setIsModalOpen(true); }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors active:scale-95" title="Редактировать" disabled={!supabaseClient || isLoading}><IconEdit /></button><button onClick={() => handleDelete(sub.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95" title="Удалить" disabled={!supabaseClient || isLoading}><IconTrash /></button></div></td>
-                                        </tr>
-                                    ))}
-                                    {filteredSubs.length === 0 && !isLoading && <tr><td colSpan="6" className="p-10 text-center text-gray-400">Нет данных.</td></tr>}
-                                </tbody>
-                            </table>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-4 -mb-4 p-4 rounded-b-xl">
+                                            <div className="text-sm">Итого: <span className="font-bold text-lg text-blue-700 block">{Number(sub.total_amount).toLocaleString()} ₸</span></div>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => handlePrint(sub)} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg active:scale-95"><IconPrinter /></button>
+                                                <button onClick={() => { setEditingSub(sub); setIsModalOpen(true); }} className="p-2 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg active:scale-95" disabled={!supabaseClient || isLoading}><IconEdit /></button>
+                                                <button onClick={() => handleDelete(sub.id)} className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg active:scale-95" disabled={!supabaseClient || isLoading}><IconTrash /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {filteredSubs.length === 0 && !isLoading && <div className="p-10 text-center text-gray-400 bg-white rounded-xl shadow-sm">Нет данных.</div>}
+                            </div>
+
+                            {/* === ДЕСКТОПНЫЙ ВИД (ТАБЛИЦА) === */}
+                            <div className="hidden sm:block bg-white rounded-xl shadow-md overflow-hidden">
+                                <table className="w-full text-left border-collapse">
+                                    {/* ИЗМЕНЕНИЕ: Убрана колонка № из шапки */}
+                                    <thead className="bg-slate-100 text-slate-600 uppercase text-xs font-bold sticky top-0 z-10 shadow-sm"><tr><th className="p-4 border-b">Подписчик / Тип</th><th className="p-4 border-b hidden md:table-cell">Период</th><th className="p-4 border-b text-right">Общая Сумма</th><th className="p-4 border-b text-center">Оплата</th><th className="p-4 border-b text-center">Действия</th></tr></thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {filteredSubs.map(sub => (
+                                            <tr key={sub.id} className="hover:bg-blue-50 transition-colors group">
+                                                {/* ИЗМЕНЕНИЕ: Убрана ячейка с номером */}
+                                                <td className="p-4 align-top">
+                                                    {sub.subscribers.map((person, idx) => {
+                                                        const subType = getTypeById(person.type);
+                                                        return (
+                                                            <div key={idx} className="mb-2 pb-1 border-b border-dashed border-gray-200 last:border-0 last:pb-0">
+                                                                <div className="font-bold text-slate-800 text-sm">{person.name}</div>
+                                                                <div className="flex justify-between items-center text-xs text-gray-500 mt-0.5">
+                                                                    <span className="font-bold px-2 py-0.5 rounded-full text-white text-[10px] uppercase tracking-wider" style={{backgroundColor: getSubscriptionTypeColor(person.type)}}>{subType.label.split(' ')[0]}</span>
+                                                                    <span className="font-semibold text-slate-600 bg-slate-100 px-1 rounded">{Number(person.amount).toLocaleString()} ₸}</span>
+                                                                </div>
+                                                                <div className="text-[10px] text-gray-400">{person.org || '—'}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </td>
+                                                <td className="p-4 text-sm text-gray-600 hidden md:table-cell align-top"> {sub.subscribers[0].period} </td>
+                                                <td className="p-4 text-right font-bold text-slate-800 whitespace-nowrap align-top">{Number(sub.total_amount).toLocaleString()} ₸}</td>
+                                                <td className="p-4 text-center align-top"><button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)} transition-colors active:scale-95`} disabled={!supabaseClient || isLoading}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button></td>
+                                                <td className="p-4 text-center align-top"><div className="flex justify-center gap-2"><button onClick={() => handlePrint(sub)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors active:scale-95" title="Печать"><IconPrinter /></button><button onClick={() => { setEditingSub(sub); setIsModalOpen(true); }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors active:scale-95" title="Редактировать" disabled={!supabaseClient || isLoading}><IconEdit /></button><button onClick={() => handleDelete(sub.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95" title="Удалить" disabled={!supabaseClient || isLoading}><IconTrash /></button></div></td>
+                                            </tr>
+                                        ))}
+                                        {filteredSubs.length === 0 && !isLoading && <tr><td colSpan="5" className="p-10 text-center text-gray-400">Нет данных.</td></tr>}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>}
                     </div>
                     <ModalForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} nextId={subscriptions.reduce((max, s) => Math.max(max, s.custom_id || 0), 1000) + 1} initialData={editingSub} />
@@ -546,5 +486,3 @@
     </script>
 </body>
 </html>
-
-
