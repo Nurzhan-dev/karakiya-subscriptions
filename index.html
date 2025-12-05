@@ -48,8 +48,8 @@
         let supabaseClient = null;
         
         const SUB_TYPES = {
-            EDITORIAL: { id: 'editorial', label: 'Редакция', defaultAmount: 3000, color: 'green' },
-            KAZPOST: { id: 'kazpost', label: 'KazPost', defaultAmount: 6500, color: 'red' }
+            EDITORIAL: { id: 'editorial', label: 'Редакция', defaultAmount: 5520, color: 'gold' },
+            KAZPOST: { id: 'kazpost', label: 'KazPost', defaultAmount: 7689.84, color: 'blue' }
         };
         const getDefaultType = () => SUB_TYPES.EDITORIAL; 
         
@@ -196,7 +196,7 @@
                         <div className="flex justify-end gap-2">
                             <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-100">Отмена</button>
                             <button type="button" onClick={handleImport} className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 flex items-center gap-1" disabled={lines.length === 0}>
-                                {lines.length > 0 ? `Импортировать (${lines.length})` : 'Вставьте список'}
+                                {lines.length > 0 ? `Импортировать (${lines.length})` : 'Вставить список'}
                             </button>
                         </div>
                     </div>
@@ -448,11 +448,16 @@
 
             const handlePrint = (sub) => { setPrintData(null); setPrintData(sub); setTimeout(() => window.print(), 100); };
 
-            const stats = useMemo(() => {
-                const total = subscriptions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
-                const paid = subscriptions.filter(s => s.status === 'paid').reduce((sum, s) => sum + (s.total_amount || 0), 0);
-                return { total, paid, count: subscriptions.length };
-            }, [subscriptions]);
+           const stats = useMemo(() => {
+           const total = subscriptions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+           const paid = subscriptions.filter(s => s.status === 'paid').reduce((sum, s) => sum + (s.total_amount || 0), 0);
+
+           const subscribersCount = subscriptions.reduce((sum, s) => {
+           return sum + (s.subscribers?.length || 0);
+           }, 0);
+
+           return { total, paid, count: subscribersCount };
+           }, [subscriptions]);
 
             const filteredSubs = subscriptions.filter(s => {
                 const search = filter.toLowerCase();
@@ -460,12 +465,11 @@
                 return s.custom_id.toString().includes(search) || subscribers.toLowerCase().includes(search);
             });
 
-            // Хелперы
             const getSubscriptionTypeColor = (typeId) => {
                 const type = getTypeById(typeId);
                 switch(type.id) {
-                    case SUB_TYPES.EDITORIAL.id: return '#10b981'; 
-                    case SUB_TYPES.KAZPOST.id: return '#ef4444';
+                    case SUB_TYPES.EDITORIAL.id: return '#FFD700'; 
+                    case SUB_TYPES.KAZPOST.id: return '#0000FF';
                     default: return '#6b7280'; // Fallback for safety
                 }
             };
@@ -542,4 +546,5 @@
     </script>
 </body>
 </html>
+
 
