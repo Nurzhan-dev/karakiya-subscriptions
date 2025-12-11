@@ -48,16 +48,33 @@
         
         let supabaseClient = null;
         
+        // Типы подписок с базовой ГОДОВОЙ ценой
         const SUB_TYPES = {
             EDITORIAL: { id: 'editorial', label: 'Редакция', defaultAmount: 5520, color: 'gold' },
             KAZPOST: { id: 'kazpost', label: 'KazPost', defaultAmount: 7689.84, color: 'blue' }
         };
+
+        // --- ИЗМЕНЕНО: Только длительность, без привязки к датам ---
+        const DURATION_OPTIONS = [
+            { months: 12, label: '12 ай (1 жыл)', defaultText: '12 ай' },
+            { months: 6, label: '6 ай', defaultText: '6 ай' },
+        ];
+
         const getDefaultType = () => SUB_TYPES.EDITORIAL; 
         
         const getTypeById = (id) => {
             const found = Object.values(SUB_TYPES).find(t => t.id === id);
             return found || getDefaultType();
         }
+
+        // Функция расчета стоимости
+        const calculatePrice = (typeId, months) => {
+            const type = getTypeById(typeId);
+            // Базовая цена (год) / 12 * кол-во месяцев
+            const price = (type.defaultAmount / 12) * months;
+            return Math.round(price);
+        };
+
         const IconSearch = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
         const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
         const IconPrinter = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>;
@@ -141,18 +158,41 @@
         const ImportModal = ({ isOpen, onClose, onImport }) => {
             const [text, setText] = useState('');
             const [defaultOrg, setDefaultOrg] = useState('');
-            const [defaultPeriod, setDefaultPeriod] = useState('Қаңтар 2026 – Желтоқсан 2026');
+            
+            // Состояния для периода и типа
             const [selectedType, setSelectedType] = useState(SUB_TYPES.EDITORIAL.id); 
+            const [selectedMonths, setSelectedMonths] = useState(12);
+            const [calculatedAmount, setCalculatedAmount] = useState(5520);
+            
+            // Текст для периода (по умолчанию заполняем generic, но можно менять)
+            const [periodText, setPeriodText] = useState('2026 жыл');
+
+            // Эффект для пересчета цены при смене типа или месяцев
+            useEffect(() => {
+                const price = calculatePrice(selectedType, selectedMonths);
+                setCalculatedAmount(price);
+                
+                // Авто-заполнение текста периода при смене длительности (если не хочется, можно убрать)
+                const option = DURATION_OPTIONS.find(o => o.months == selectedMonths);
+                if (option) {
+                    setPeriodText(option.defaultText);
+                }
+            }, [selectedType, selectedMonths]);
 
             if (!isOpen) return null;
 
-            const subType = getTypeById(selectedType);
-            const defaultAmount = subType.defaultAmount;
             const lines = text.split('\n').filter(line => line.trim() !== '');
 
             const handleImport = () => {
                 if (lines.length === 0) { console.warn("Вставьте текст!"); return; }
-                const newSubs = lines.map(line => ({ name: line.trim(), org: defaultOrg, period: defaultPeriod, amount: defaultAmount, type: selectedType }));
+                const newSubs = lines.map(line => ({ 
+                    name: line.trim(), 
+                    org: defaultOrg, 
+                    period: periodText, 
+                    amount: calculatedAmount, 
+                    type: selectedType,
+                    months: selectedMonths // сохраняем месяцы для логики
+                }));
                 onImport(newSubs); onClose(); setText('');
             };
 
@@ -170,11 +210,30 @@
                             <div className="bg-green-50 p-3 rounded text-sm space-y-3 mb-4">
                                 <p className="font-semibold text-green-800">Настройки импорта:</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                     <div><label className="block text-xs text-gray-500 mb-1">Тип подписки</label><select className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={selectedType} onChange={e => setSelectedType(e.target.value)}>{Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
-                                     <div><label className="block text-xs text-gray-500 mb-1">Сумма (₸)</label><input type="number" className="w-full border rounded p-2 bg-gray-100 font-bold" value={defaultAmount} readOnly /></div>
+                                     <div>
+                                        <label className="block text-xs text-gray-500 mb-1">Тип подписки</label>
+                                        <select className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={selectedType} onChange={e => setSelectedType(e.target.value)}>
+                                            {Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                                        </select>
+                                    </div>
+                                     <div>
+                                        <label className="block text-xs text-gray-500 mb-1">Длительность (для цены)</label>
+                                        <select className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={selectedMonths} onChange={e => setSelectedMonths(Number(e.target.value))}>
+                                            {DURATION_OPTIONS.map(p => <option key={p.months} value={p.months}>{p.label}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-1">Текст периода (в квитанции)</label>
+                                        <input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500 bg-white" value={periodText} onChange={e => setPeriodText(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-1">Сумма (₸) - Авто</label>
+                                        <input type="number" className="w-full border rounded p-2 bg-yellow-100 font-bold text-green-700" value={calculatedAmount} readOnly />
+                                    </div>
                                 </div>
                                 <div><label className="block text-xs text-gray-500 mb-1">Организация</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultOrg} onChange={e => setDefaultOrg(e.target.value)} /></div>
-                                <div><label className="block text-xs text-gray-500 mb-1">Период</label><input className="w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={defaultPeriod} onChange={e => setDefaultPeriod(e.target.value)} /></div>
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 shrink-0 mt-4">
@@ -188,9 +247,7 @@
 
         const ModalForm = ({ isOpen, onClose, onSave, nextId, initialData }) => {
             const getDefaultSub = useCallback(() => {
-                const defaults = JSON.parse(localStorage.getItem('LAST_SUB_DEFAULTS') || JSON.stringify({ period: 'Қаңтар 2026 – Желтоқсан 2026', type: getDefaultType().id }));
-                const defaultType = getTypeById(defaults.type);
-                return { name: '', org: '', period: defaults.period, amount: defaultType.defaultAmount, type: defaultType.id };
+                return { name: '', org: '', period: '2026 жыл', amount: SUB_TYPES.EDITORIAL.defaultAmount, type: SUB_TYPES.EDITORIAL.id, months: 12 };
             }, []);
 
             const [subs, setSubs] = useState([getDefaultSub()]);
@@ -198,7 +255,12 @@
 
             useEffect(() => {
                 if (isOpen) {
-                    if (initialData && initialData.subscribers) { setSubs(initialData.subscribers.map(s => ({...s}))); } else { setSubs([getDefaultSub()]); }
+                    if (initialData && initialData.subscribers) { 
+                        // При открытии редактирования, если months не сохранен, пытаемся угадать по сумме или ставим 12
+                        setSubs(initialData.subscribers.map(s => ({...s, months: s.months || 12 }))); 
+                    } else { 
+                        setSubs([getDefaultSub()]); 
+                    }
                 }
             }, [isOpen, initialData, getDefaultSub]);
 
@@ -206,14 +268,35 @@
 
             const addSub = () => {
                 const lastSub = subs[subs.length - 1] || getDefaultSub();
+                // Копируем период и тип от предыдущего
                 const defaultType = getTypeById(lastSub.type);
-                setSubs([...subs, { name: '', org: lastSub.org, period: lastSub.period, amount: defaultType.defaultAmount, type: defaultType.id }]);
+                setSubs([...subs, { name: '', org: lastSub.org, period: lastSub.period, amount: lastSub.amount, type: defaultType.id, months: lastSub.months }]);
             };
             const removeSub = (idx) => { if (subs.length > 1) setSubs(subs.filter((_, i) => i !== idx)); };
             
             const handleSubChange = (idx, field, val) => { 
-                const newSubs = [...subs]; newSubs[idx][field] = val; 
-                if (field === 'type') { const newType = getTypeById(val); newSubs[idx].amount = newType.defaultAmount; }
+                const newSubs = [...subs]; 
+                newSubs[idx][field] = val; 
+
+                // Логика пересчета при смене Типа
+                if (field === 'type') {
+                    const currentMonths = newSubs[idx].months || 12;
+                    newSubs[idx].amount = calculatePrice(val, currentMonths);
+                }
+
+                // Логика пересчета при смене Длительности (через селект)
+                if (field === 'months') {
+                   const months = Number(val);
+                   newSubs[idx].months = months;
+                   newSubs[idx].amount = calculatePrice(newSubs[idx].type || SUB_TYPES.EDITORIAL.id, months);
+                   
+                   // Обновляем текст периода на дефолтный для этой длительности
+                   const option = DURATION_OPTIONS.find(o => o.months === months);
+                   if (option) {
+                       newSubs[idx].period = option.defaultText;
+                   }
+                }
+
                 setSubs(newSubs); 
             };
             
@@ -225,8 +308,7 @@
                 e.preventDefault();
                 const validSubs = subs.filter(s => s.name.trim() !== '');
                 if (validSubs.length === 0) { console.warn('Введите хотя бы одного подписчика'); return; }
-                const lastValid = validSubs[validSubs.length - 1];
-                localStorage.setItem('LAST_SUB_DEFAULTS', JSON.stringify({ period: lastValid.period, type: lastValid.type }));
+                
                 onSave({ subscribers: validSubs.map(s => ({...s, amount: parseInt(s.amount) || 0, type: s.type || getDefaultType().id })), totalAmount: totalAmount });
             };
 
@@ -235,7 +317,6 @@
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fade-in">
                         <div className="bg-white w-full max-w-5xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[98vh] sm:max-h-[95vh]">
                             <div className="bg-blue-700 p-3 sm:p-4 flex justify-between items-center text-white shrink-0">
-                                {/* ИЗМЕНЕНИЕ: Убран номер заявки из заголовка */}
                                 <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">{initialData ? <IconEdit /> : <IconPlus />} {initialData ? `Редактирование заявки` : `Новая заявка`}</h2>
                                 <button onClick={onClose} className="text-white hover:text-blue-200 p-1"><IconX /></button>
                             </div>
@@ -254,12 +335,26 @@
                                                 <span>{idx + 1}</span>
                                                 {subs.length > 1 && <button type="button" onClick={() => removeSub(idx)} className="sm:hidden text-red-400 hover:text-red-600 p-1 transition-colors active:scale-95" title="Удалить"><IconX /></button>}
                                             </div>
-                                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-4">
+                                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-6 gap-3 sm:gap-4">
                                                 <div className="sm:col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">ФИО</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.name} onChange={(e) => handleSubChange(idx, 'name', e.target.value)} required placeholder="Иванов И.И." /></div>
                                                 <div className="sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Тип</label><select className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.type || getDefaultType().id} onChange={(e) => handleSubChange(idx, 'type', e.target.value)}>{Object.values(SUB_TYPES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
-                                                <div className="sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Период</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.period} onChange={(e) => handleSubChange(idx, 'period', e.target.value)} required /></div>
+                                                
+                                                {/* ИЗМЕНЕНИЕ: Период (Длительность) */}
+                                                <div className="sm:col-span-1">
+                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Срок</label>
+                                                    <select className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.months || 12} onChange={(e) => handleSubChange(idx, 'months', e.target.value)}>
+                                                        {DURATION_OPTIONS.map(p => <option key={p.months} value={p.months}>{p.label}</option>)}
+                                                    </select>
+                                                </div>
+
                                                 <div className="sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Сумма</label><input type="number" className="w-full border rounded-lg p-2 text-sm font-bold focus:ring-blue-500 focus:border-blue-500 bg-gray-50" value={sub.amount} onChange={(e) => handleSubChange(idx, 'amount', e.target.value)} required min="1" /></div>
-                                                <div className="sm:col-span-5"><label className="block text-xs font-medium text-gray-500 mb-1">Организация (необязательно)</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.org} onChange={(e) => handleSubChange(idx, 'org', e.target.value)} placeholder="Название учреждения" /></div>
+                                                <div className="sm:col-span-1"><label className="block text-xs font-medium text-gray-500 mb-1">Организация</label><input className="w-full border rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500" value={sub.org} onChange={(e) => handleSubChange(idx, 'org', e.target.value)} placeholder="Опционально" /></div>
+                                                
+                                                {/* ИЗМЕНЕНИЕ: Текст периода теперь редактируется отдельно, но предзаполняется */}
+                                                <div className="sm:col-span-6 mt-1">
+                                                    <label className="block text-[10px] text-gray-400 mb-0.5">Текст периода в квитанции (можно менять вручную):</label>
+                                                    <input className="w-full border-b border-dashed bg-transparent p-1 text-xs text-gray-600 focus:outline-none focus:border-blue-500" value={sub.period} onChange={(e) => handleSubChange(idx, 'period', e.target.value)} />
+                                                </div>
                                             </div>
                                             {subs.length > 1 && <button type="button" onClick={() => removeSub(idx)} className="hidden sm:block text-red-400 hover:text-red-600 p-1 transition-colors active:scale-95 shrink-0 self-start mt-6" title="Удалить"><IconX /></button>}
                                         </div>
@@ -405,7 +500,6 @@
                             <div className="block sm:hidden space-y-4 pb-6">
                                 {filteredSubs.map(sub => (
                                     <div key={sub.id} className="bg-white rounded-xl shadow-sm p-4 border border-slate-200">
-                                        {/* ИЗМЕНЕНИЕ: Убран номер заявки, осталась только кнопка справа */}
                                         <div className="flex justify-end items-center mb-3 pb-2 border-b border-slate-100">
                                             <button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)} transition-colors active:scale-95`} disabled={!supabaseClient || isLoading}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button>
                                         </div>
@@ -443,12 +537,10 @@
                             {/* === ДЕСКТОПНЫЙ ВИД (ТАБЛИЦА) === */}
                             <div className="hidden sm:block bg-white rounded-xl shadow-md overflow-hidden">
                                 <table className="w-full text-left border-collapse">
-                                    {/* ИЗМЕНЕНИЕ: Убрана колонка № из шапки */}
                                     <thead className="bg-slate-100 text-slate-600 uppercase text-xs font-bold sticky top-0 z-10 shadow-sm"><tr><th className="p-4 border-b">Подписчик / Тип</th><th className="p-4 border-b hidden md:table-cell">Период</th><th className="p-4 border-b text-right">Общая Сумма</th><th className="p-4 border-b text-center">Оплата</th><th className="p-4 border-b text-center">Действия</th></tr></thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {filteredSubs.map(sub => (
                                             <tr key={sub.id} className="hover:bg-blue-50 transition-colors group">
-                                                {/* ИЗМЕНЕНИЕ: Убрана ячейка с номером */}
                                                 <td className="p-4 align-top">
                                                     {sub.subscribers.map((person, idx) => {
                                                         const subType = getTypeById(person.type);
@@ -486,4 +578,3 @@
     </script>
 </body>
 </html>
-
