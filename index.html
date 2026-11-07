@@ -549,7 +549,7 @@
                                                                 <div className="font-bold text-slate-800 text-sm">{person.name}</div>
                                                                 <div className="flex justify-between items-center text-xs text-gray-500 mt-0.5">
                                                                     <span className="font-bold px-2 py-0.5 rounded-full text-white text-[10px] uppercase tracking-wider" style={{backgroundColor: getSubscriptionTypeColor(person.type)}}>{subType.label.split(' ')[0]}</span>
-                                                                    <span className="font-semibold text-slate-600 bg-slate-100 px-1 rounded">{Number(person.amount).toLocaleString()} ₸}</span>
+                                                                    <span className="font-semibold text-slate-600 bg-slate-100 px-1 rounded">{Number(person.amount).toLocaleString()} ₸</span>
                                                                 </div>
                                                                 <div className="text-[10px] text-gray-400">{person.org || '—'}</div>
                                                             </div>
@@ -557,7 +557,7 @@
                                                     })}
                                                 </td>
                                                 <td className="p-4 text-sm text-gray-600 hidden md:table-cell align-top"> {sub.subscribers[0].period} </td>
-                                                <td className="p-4 text-right font-bold text-slate-800 whitespace-nowrap align-top">{Number(sub.total_amount).toLocaleString()} ₸}</td>
+                                                <td className="p-4 text-right font-bold text-slate-800 whitespace-nowrap align-top">{Number(sub.total_amount).toLocaleString()} ₸</td>
                                                 <td className="p-4 text-center align-top"><button onClick={() => toggleStatus(sub.id, sub.status)} className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentClasses(sub.status)} transition-colors active:scale-95`} disabled={!supabaseClient || isLoading}>{sub.status === 'paid' ? 'Оплачено' : 'Ожидает'}</button></td>
                                                 <td className="p-4 text-center align-top"><div className="flex justify-center gap-2"><button onClick={() => handlePrint(sub)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors active:scale-95" title="Печать"><IconPrinter /></button><button onClick={() => { setEditingSub(sub); setIsModalOpen(true); }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors active:scale-95" title="Редактировать" disabled={!supabaseClient || isLoading}><IconEdit /></button><button onClick={() => handleDelete(sub.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95" title="Удалить" disabled={!supabaseClient || isLoading}><IconTrash /></button></div></td>
                                             </tr>
