@@ -50,8 +50,8 @@
         
         // Типы подписок с базовой ГОДОВОЙ ценой
         const SUB_TYPES = {
-            EDITORIAL: { id: 'editorial', label: 'Редакция', defaultAmount: 5520, color: 'gold' },
-            KAZPOST: { id: 'kazpost', label: 'KazPost', defaultAmount: 7689.84, color: 'blue' }
+            EDITORIAL: { id: 'editorial', label: 'Редакция', defaultAmount: 6000, color: 'gold' },
+            KAZPOST: { id: 'kazpost', label: 'KazPost', defaultAmount: 8430,12, color: 'blue' }
         };
 
         // --- ИЗМЕНЕНО: Только длительность, без привязки к датам ---
@@ -127,9 +127,6 @@
                             <div className="receipt-line w-full mb-1"></div>
                             <div className="text-[10pt] font-bold">Кассирдің қолы</div>
                         </div>
-                        <div className="text-center w-1/6">
-                            <div className="font-bold text-[12pt] border-2 border-black rounded-full w-10 h-10 flex items-center justify-center mx-auto opacity-30 rotate-12">печать</div>
-                        </div>
                     </div>
                     <div className="absolute bottom-[-10px] left-0 text-xs text-gray-400 flex items-center gap-1 no-print"><IconScissors /> <span className="text-[10px]">қию сызығы</span></div>
                 </div>
@@ -162,10 +159,10 @@
             // Состояния для периода и типа
             const [selectedType, setSelectedType] = useState(SUB_TYPES.EDITORIAL.id); 
             const [selectedMonths, setSelectedMonths] = useState(12);
-            const [calculatedAmount, setCalculatedAmount] = useState(5520);
+            const [calculatedAmount, setCalculatedAmount] = useState(6000);
             
             // Текст для периода (по умолчанию заполняем generic, но можно менять)
-            const [periodText, setPeriodText] = useState('2026 жыл');
+            const [periodText, setPeriodText] = useState('2027 жыл');
 
             // Эффект для пересчета цены при смене типа или месяцев
             useEffect(() => {
@@ -247,7 +244,7 @@
 
         const ModalForm = ({ isOpen, onClose, onSave, nextId, initialData }) => {
             const getDefaultSub = useCallback(() => {
-                return { name: '', org: '', period: '2026 жыл', amount: SUB_TYPES.EDITORIAL.defaultAmount, type: SUB_TYPES.EDITORIAL.id, months: 12 };
+                return { name: '', org: '', period: '2027 жыл', amount: SUB_TYPES.EDITORIAL.defaultAmount, type: SUB_TYPES.EDITORIAL.id, months: 12 };
             }, []);
 
             const [subs, setSubs] = useState([getDefaultSub()]);
