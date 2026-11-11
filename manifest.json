@@ -1,0 +1,15 @@
+{
+  "name": "Система учета подписок «Қарақия»",
+  "short_name": "Қарақия Подписки",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1e40af",
+  "description": "Учет подписок газеты «Қарақия». Работает без интернета, устанавливается на рабочий стол, синхронизируется с базой Supabase.",
+  "icons": [
+    { "src": "logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
