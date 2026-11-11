@@ -203,8 +203,23 @@
                             <span className="whitespace-nowrap ml-2 text-[12pt]">(жазылған адам саны <span className="font-bold underline">1</span>)</span>
                         </div>
                         <div className="row-gap flex items-baseline">
-                            <span className="whitespace-nowrap mr-2">Сумма</span>
-                            <span className="receipt-line flex-grow text-center font-bold">{Number(subscriber.amount).toLocaleString()} ₸</span>
+                            <span className="whitespace-nowrap mr-2">Аудандық қоғамдық-саяси газетіне</span>
+                            <span className="receipt-line flex-grow text-center text-[12pt]">{subscriber.period}</span>
+                            <span className="whitespace-nowrap ml-1">мерзімге жазылды.</span>
+                        </div>
+                        <div className="row-gap flex items-baseline">
+                            <span className="whitespace-nowrap mr-2">Төленген сома:</span>
+                            <span className="receipt-line flex-grow font-bold">{Number(subscriber.amount).toLocaleString()} теңге</span>
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-end mt-1 px-2">
+                        <div className="text-center w-1/4">
+                            <div className="receipt-line w-full mb-1">{today}</div>
+                            <div className="text-[10pt] font-bold">Берілген күні</div>
+                        </div>
+                        <div className="text-center w-1/3">
+                            <div className="receipt-line w-full mb-1"></div>
+                            <div className="text-[10pt] font-bold">Кассирдің қолы</div>
                         </div>
                     </div>
                     <div className="absolute bottom-[-10px] left-0 text-xs text-gray-400 flex items-center gap-1 no-print"><IconScissors /> <span className="text-[10px]">қию сызығы</span></div>
