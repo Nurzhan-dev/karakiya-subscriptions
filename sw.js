@@ -1,14 +1,14 @@
-const CACHE_NAME = 'karakiya-subscriptions-v1';
+const CACHE_NAME = 'karakiya-subscriptions-v2';
 
 const APP_SHELL = [
   './',
   './index.html',
+  './style.css',
   './logo.png',
   './manifest.json'
 ];
 
 const CDN_ASSETS = [
-  'https://cdn.tailwindcss.com',
   'https://unpkg.com/react@18/umd/react.development.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.development.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
